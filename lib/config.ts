@@ -6,7 +6,7 @@ export const TIMEZONE = 'America/Guatemala'; // GT = UTC-6, sin DST
 /** Configuración global del evento (igual para todos los invitados) */
 export const EVENT = {
   /** Fecha/hora del evento en UTC ISO. Ejemplo: 2025-12-20 18:00 GT = 2025-12-21T00:00:00Z */
-  eventISO: '2025-11-9T02:00:00Z',
+  eventISO: '2025-11-09T02:00:00Z',
 
   /** Mensaje de invitación (texto largo) */
   message:
