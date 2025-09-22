@@ -19,7 +19,7 @@ export default async function InviteLanding({
         <a className="rounded-xl border px-4 py-2 text-center" href={`/i/${invite.slug}/info`}>
           Ver detalles
         </a>
-        <a className="rounded-xl border px-4 py-2 text-center" href={`/i/${invite.slug}/confirm`}>
+        <a className="rounded-xl border px-4 py-2 text-center" href={`/i/${invite.slug}/confirmar`}>
           Confirmar asistencia
         </a>
       </div>

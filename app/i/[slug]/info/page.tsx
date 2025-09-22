@@ -38,7 +38,7 @@ export default async function InviteInfoPage({
         <a className="rounded-xl border px-4 py-2 text-center" href={wazeUrl()} target="_blank" rel="noreferrer">
           Abrir en Waze
         </a>
-        <a className="rounded-xl border px-4 py-2 text-center" href={`/i/${invite.slug}/confirm`}>
+        <a className="rounded-xl border px-4 py-2 text-center" href={`/i/${invite.slug}/confirmar`}>
           Confirmar asistencia
         </a>
       </div>
