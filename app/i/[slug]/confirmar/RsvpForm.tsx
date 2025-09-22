@@ -11,6 +11,7 @@ type Rsvp = {
   slug: string;
   guests: number;
   attending: boolean;
+  attendee_names?: string[] | null;
 };
 
 export default function RsvpForm({ slug, limit }: Props) {
@@ -32,7 +33,7 @@ export default function RsvpForm({ slug, limit }: Props) {
   // Estado de envío
   const [status, setStatus] = useState<string>('');
 
-  // Precarga si ya existe RSVP
+  // Precarga si ya existe RSVP (incluye attendee_names)
   useEffect(() => {
     let alive = true;
     (async () => {
@@ -40,12 +41,23 @@ export default function RsvpForm({ slug, limit }: Props) {
         const res = await fetch(`/api/rsvp?slug=${encodeURIComponent(slug)}`, { cache: 'no-store' });
         const json = await res.json();
         const r: Rsvp | null = json?.rsvp ?? null;
+
         if (alive && r) {
           const att = r.attending ? 'yes' : 'no';
           setAttending(att);
+
           if (att === 'yes') {
-            setGuestCount(r.guests > 0 ? r.guests : null);
-            setAttendeeNames(Array.from({ length: r.guests > 0 ? r.guests : 1 }, () => ''));
+            const count = r.guests > 0 ? r.guests : null;
+            setGuestCount(count);
+
+            const fromDb = Array.isArray(r.attendee_names) ? r.attendee_names.map((s) => String(s ?? '')) : [];
+            // si hay count, ajustamos el arreglo a ese tamaño (rellenar o recortar)
+            if (count != null) {
+              const padded = Array.from({ length: count }, (_, i) => fromDb[i] ?? '');
+              setAttendeeNames(padded);
+            } else {
+              setAttendeeNames(fromDb.length ? fromDb : ['']);
+            }
           } else {
             setGuestCount(null);
             setAttendeeNames([]);
@@ -95,13 +107,11 @@ export default function RsvpForm({ slug, limit }: Props) {
     setStatus('Guardando...');
 
     const payload = {
-  slug,
-  attending: attending === 'yes',
-  guests: attending === 'yes' ? (guestCount as number) : 0,
-  attendee_names:
-    attending === 'yes' ? attendeeNames.map((s) => s.trim()) : [],
-};
-
+      slug,
+      attending: attending === 'yes',
+      guests: attending === 'yes' ? (guestCount as number) : 0,
+      attendee_names: attending === 'yes' ? attendeeNames.map((s) => s.trim()) : [],
+    };
 
     try {
       const res = await fetch('/api/rsvp', {
@@ -184,7 +194,7 @@ export default function RsvpForm({ slug, limit }: Props) {
                 </select>
               </label>
 
-              {/* Nombres por asistente: solo cuando ya hay cantidad */}
+              {/* Nombres por asistente */}
               {guestCount != null && (
                 <div className="space-y-3">
                   {attendeeNames.map((val, i) => (
@@ -207,7 +217,7 @@ export default function RsvpForm({ slug, limit }: Props) {
             </>
           )}
 
-          {/* Botón: solo aparece después de elegir Sí o No */}
+          {/* Botón */}
           <button
             type="submit"
             className="w-full rounded-xl border px-4 py-2 font-medium hover:shadow"
