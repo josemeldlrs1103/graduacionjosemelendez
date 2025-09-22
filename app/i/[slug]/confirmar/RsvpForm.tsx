@@ -95,10 +95,13 @@ export default function RsvpForm({ slug, limit }: Props) {
     setStatus('Guardando...');
 
     const payload = {
-      slug,
-      attending: attending === 'yes',
-      guests: attending === 'yes' ? (guestCount as number) : 0,
-    };
+  slug,
+  attending: attending === 'yes',
+  guests: attending === 'yes' ? (guestCount as number) : 0,
+  attendee_names:
+    attending === 'yes' ? attendeeNames.map((s) => s.trim()) : [],
+};
+
 
     try {
       const res = await fetch('/api/rsvp', {
