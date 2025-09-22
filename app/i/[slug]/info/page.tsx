@@ -2,6 +2,7 @@
 import { notFound } from 'next/navigation';
 import { getInviteBySlug } from '@/lib/invitesServer';
 import { EVENT, TIMEZONE, googleMapsUrl, wazeUrl } from '@/lib/config';
+import Countdown from '@/components/Countdown';
 
 export const dynamic = 'force-dynamic';
 
@@ -25,6 +26,7 @@ export default async function InviteInfoPage({
 
       <div className="mt-4 space-y-1">
         <p><b>Fecha:</b> {dateText}</p>
+        <Countdown targetISO={EVENT.eventISO} />
         <p><b>Lugar:</b> {EVENT.venue.name}</p>
         <p><b>Dirección:</b> {EVENT.venue.address}</p>
       </div>
