@@ -1,47 +1,47 @@
-// app/i/[slug]/info/page.tsx
-import Link from 'next/link';
+// app/i/[slug]/detail/page.tsx
 import { notFound } from 'next/navigation';
-import Countdown from '@/components/Countdown';
-import { getInvite } from '@/lib/invites';
-import { EVENT, googleMapsUrl, wazeUrl } from '@/lib/config';
+import { getInviteBySlug } from '@/lib/invitesServer';
+import config from '@/lib/config'; // asume que tienes fecha/lugar aquí
 
-type Props = { params: { slug: string } };
+export const dynamic = 'force-dynamic';
 
-export default function Info({ params }: Props) {
-  const invite = getInvite(params.slug);
+export default async function InviteDetailPage({
+  params,
+}: { params: { slug: string } }) {
+  const invite = await getInviteBySlug(params.slug);
   if (!invite) return notFound();
 
-  const gmaps = googleMapsUrl();
-  const waze = wazeUrl();
+  const dateText = config?.eventDateText ?? 'Próximamente';
+  const venue = config?.venueName ?? 'Lugar del evento';
+  const gmaps = config?.googleMapsUrl; // opcional
+  const waze = config?.wazeUrl;        // opcional
 
   return (
-    <main style={{ maxWidth: 820, margin: '40px auto', padding: 16 }}>
-      <h1 style={{ fontSize: 28, marginBottom: 8 }}>Información del evento</h1>
-      <p style={{ opacity: 0.9 }}>{EVENT.message}</p>
+    <main className="max-w-md mx-auto p-6">
+      <h1 className="text-2xl font-semibold">Detalles del evento</h1>
+      <p className="mt-2">Invitación para: <b>{invite.name}</b></p>
+      <p className="mt-1">Cupo asignado: {invite.limit_guests}</p>
 
-      <div style={{ marginTop: 12 }}>
-        <Countdown eventISO={EVENT.eventISO} />
+      <div className="mt-4 space-y-1">
+        <p><b>Fecha:</b> {dateText}</p>
+        <p><b>Lugar:</b> {venue}</p>
       </div>
 
-      <section style={{ marginTop: 24 }}>
-        <h2 style={{ fontSize: 20 }}>Lugar</h2>
-        <p>
-          <strong>{EVENT.venue.name}</strong><br />
-          {EVENT.venue.address}
-        </p>
-        <div style={{ display: 'flex', gap: 12, marginTop: 12 }}>
-          <a href={gmaps} target="_blank" rel="noreferrer" style={btn}>Abrir en Google Maps</a>
-          <a href={waze} target="_blank" rel="noreferrer" style={btnOutline}>Abrir en Waze</a>
-        </div>
-      </section>
-
-      <div style={{ display: 'flex', gap: 12, marginTop: 24 }}>
-        <Link href={`/i/${params.slug}/confirmar`} style={btn}>Confirmar asistencia</Link>
-        <Link href={`/i/${params.slug}`} style={btnOutline}>Volver</Link>
+      <div className="mt-6 grid gap-3">
+        {gmaps && (
+          <a className="rounded-xl border px-4 py-2 text-center" href={gmaps} target="_blank" rel="noreferrer">
+            Abrir en Google Maps
+          </a>
+        )}
+        {waze && (
+          <a className="rounded-xl border px-4 py-2 text-center" href={waze} target="_blank" rel="noreferrer">
+            Abrir en Waze
+          </a>
+        )}
+        <a className="rounded-xl border px-4 py-2 text-center" href={`/i/${invite.slug}/confirm`}>
+          Confirmar asistencia
+        </a>
       </div>
     </main>
   );
 }
-
-const btn = { padding: '10px 14px', borderRadius: 10, background: 'black', color: 'white', textDecoration: 'none' };
-const btnOutline = { ...btn, background: 'transparent', color: 'black', border: '1px solid black' };
