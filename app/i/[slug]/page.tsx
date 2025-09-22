@@ -1,27 +1,28 @@
 // app/i/[slug]/page.tsx
-import Link from 'next/link';
 import { notFound } from 'next/navigation';
-import { getInvite } from '@/lib/invites';
+import { getInviteBySlug } from '@/lib/invitesServer';
 
-type Props = { params: { slug: string } };
+export const dynamic = 'force-dynamic'; // siempre fresco (puedes quitarlo luego)
 
-export default function Landing({ params }: Props) {
-  const invite = getInvite(params.slug);
+export default async function InviteLanding({
+  params,
+}: { params: { slug: string } }) {
+  const invite = await getInviteBySlug(params.slug);
   if (!invite) return notFound();
 
   return (
-    <main style={{ maxWidth: 820, margin: '40px auto', padding: 16 }}>
-      {/* portada opcional fija: agrega una <img> si defines EVENT.coverImage */}
-      <h1 style={{ marginTop: 8, fontSize: 32 }}>{invite.name}</h1>
-      <p style={{ marginTop: 6, opacity: 0.8 }}>Hasta {invite.guest_limit} personas</p>
+    <main className="max-w-md mx-auto p-6">
+      <h1 className="text-2xl font-semibold">¡Hola, {invite.name}!</h1>
+      <p className="mt-2">Cupo asignado: {invite.limit_guests}</p>
 
-      <div style={{ display: 'flex', gap: 12, marginTop: 20 }}>
-        <Link href={`/i/${params.slug}/info`} style={btn}>Ver información</Link>
-        <Link href={`/i/${params.slug}/confirmar`} style={btnOutline}>Confirmar invitación</Link>
+      <div className="mt-6 grid gap-3">
+        <a className="rounded-xl border px-4 py-2 text-center" href={`/i/${invite.slug}/detail`}>
+          Ver detalles
+        </a>
+        <a className="rounded-xl border px-4 py-2 text-center" href={`/i/${invite.slug}/confirm`}>
+          Confirmar asistencia
+        </a>
       </div>
     </main>
   );
 }
-
-const btn = { padding: '10px 14px', borderRadius: 10, background: 'black', color: 'white', textDecoration: 'none' };
-const btnOutline = { ...btn, background: 'transparent', color: 'black', border: '1px solid black' };
