@@ -1,46 +1,29 @@
-// app/i/[slug]/info/page.tsx
-import { notFound } from 'next/navigation';
-import { getInviteBySlug } from '@/lib/invitesServer';
-import { EVENT, TIMEZONE, googleMapsUrl, wazeUrl } from '@/lib/config';
+// lib/config.ts
 
-export const dynamic = 'force-dynamic';
+/** Zona horaria de referencia para mostrar fechas humanas (no para cálculos) */
+export const TIMEZONE = 'America/Guatemala'; // GT = UTC-6, sin DST
 
-export default async function InviteDetailPage({
-  params,
-}: { params: { slug: string } }) {
-  const invite = await getInviteBySlug(params.slug);
-  if (!invite) return notFound();
+/** Configuración global del evento (igual para todos los invitados) */
+export const EVENT = {
+  /** Fecha/hora del evento en UTC ISO. Ejemplo: 2025-12-20 18:00 GT = 2025-12-21T00:00:00Z */
+  eventISO: '2025-11-09T02:00:00Z',
 
-  // Formatea la fecha/hora del evento a la zona horaria GT
-  const dateText = new Date(EVENT.eventISO).toLocaleString('es-GT', {
-    timeZone: TIMEZONE,
-    dateStyle: 'full',
-    timeStyle: 'short',
-  });
+  /** Mensaje de invitación (texto largo) */
+  message:
+    'Nos encantaría contar con tu presencia para celebrar esta ocasión especial. ¡Gracias por acompañarnos!',
 
-  return (
-    <main className="max-w-md mx-auto p-6">
-      <h1 className="text-2xl font-semibold">Detalles del evento</h1>
-      <p className="mt-2">Invitación para: <b>{invite.name}</b></p>
-      <p className="mt-1">Cupo asignado: {invite.limit_guests}</p>
+  /** Lugar del evento (para mostrar y para abrir mapas) */
+  venue: {
+    name: 'Club Español',
+    address: 'Calzada Roosevelt km 13.5 40-20 Guatemala',
+  },
+};
 
-      <div className="mt-4 space-y-1">
-        <p><b>Fecha:</b> {dateText}</p>
-        <p><b>Lugar:</b> {EVENT.venue.name}</p>
-        <p><b>Dirección:</b> {EVENT.venue.address}</p>
-      </div>
+/** URLs de mapas (usar lat/lng para mayor precisión) */
+export function googleMapsUrl() {
+  return 'https://maps.app.goo.gl/YHaQJsV2cMMm687M8';
+}
 
-      <div className="mt-6 grid gap-3">
-        <a className="rounded-xl border px-4 py-2 text-center" href={googleMapsUrl()} target="_blank" rel="noreferrer">
-          Abrir en Google Maps
-        </a>
-        <a className="rounded-xl border px-4 py-2 text-center" href={wazeUrl()} target="_blank" rel="noreferrer">
-          Abrir en Waze
-        </a>
-        <a className="rounded-xl border px-4 py-2 text-center" href={`/i/${invite.slug}/confirm`}>
-          Confirmar asistencia
-        </a>
-      </div>
-    </main>
-  );
+export function wazeUrl() {
+  return 'https://ul.waze.com/ul?place=ChIJEfSofjigiYURlNTqFywDlXI&ll=14.63499450%2C-90.57495880&navigate=yes&utm_campaign=default&utm_source=waze_website&utm_medium=lm_share_location';
 }
