@@ -12,4 +12,5 @@ export function supabaseAdmin() {
 }
 
 // (opcional) tipo útil si lo quieres usar en otros archivos
-export type SupabaseAdminClient = ReturnType<typeof supabaseAdmin>;
+export const getSupabaseServer = supabaseAdmin; // alias para imports antiguos
+
