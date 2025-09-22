@@ -41,13 +41,11 @@ export default function RsvpForm({ slug, limit }: Props) {
         const json = await res.json();
         const r: Rsvp | null = json?.rsvp ?? null;
         if (alive && r) {
-          setAttending(r.attending ? 'yes' : 'no');
-          if (r.attending) {
+          const att = r.attending ? 'yes' : 'no';
+          setAttending(att);
+          if (att === 'yes') {
             setGuestCount(r.guests > 0 ? r.guests : null);
-            // inicializa nombres con longitud conocida
-            setAttendeeNames(
-              Array.from({ length: r.guests > 0 ? r.guests : 1 }, (_, i) => attendeeNames[i] ?? '')
-            );
+            setAttendeeNames(Array.from({ length: r.guests > 0 ? r.guests : 1 }, () => ''));
           } else {
             setGuestCount(null);
             setAttendeeNames([]);
@@ -62,7 +60,6 @@ export default function RsvpForm({ slug, limit }: Props) {
     return () => {
       alive = false;
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [slug]);
 
   // Sincroniza el array de nombres cuando cambia la cantidad
@@ -86,7 +83,6 @@ export default function RsvpForm({ slug, limit }: Props) {
     e.preventDefault();
     setStatus('');
 
-    // Validaciones según nuevo flujo
     if (attending === '') {
       setStatus('Selecciona si asistirás.');
       return;
@@ -122,9 +118,9 @@ export default function RsvpForm({ slug, limit }: Props) {
 
   return (
     <form onSubmit={onSubmit} className="space-y-4">
-      {/* Radios de asistencia */}
-      <fieldset className="space-y-2">
-        <legend className="text-sm">¿Asistirás?</legend>
+      {/* Radios de asistencia (sin borde) */}
+      <div className="space-y-2">
+        <div className="text-sm">¿Asistirás?</div>
         <div className="flex items-center gap-6">
           <label className="inline-flex items-center gap-2">
             <input
@@ -134,8 +130,7 @@ export default function RsvpForm({ slug, limit }: Props) {
               checked={attending === 'yes'}
               onChange={() => {
                 setAttending('yes');
-                // no fijamos guestCount aún; el usuario deberá elegirlo
-                setGuestCount(null);
+                setGuestCount(null); // requiere elegir cantidad
               }}
             />
             <span>Sí</span>
@@ -155,66 +150,71 @@ export default function RsvpForm({ slug, limit }: Props) {
             <span>No</span>
           </label>
         </div>
-      </fieldset>
+      </div>
 
-      {/* Bloque visible solo si "Sí" */}
-      {attending === 'yes' && (
+      {/* Solo mostrar el resto si ya eligieron una opción */}
+      {attending !== '' && (
         <>
-          <div className="mt-2 font-medium">Confirmar asistentes</div>
+          {attending === 'yes' && (
+            <>
+              <div className="mt-2 font-medium">Confirmar asistentes</div>
 
-          {/* Combo de cantidad con placeholder */}
-          <label className="block">
-            <span className="text-sm">Cantidad</span>
-            <select
-              className="mt-1 w-full rounded-lg border p-2"
-              value={guestCount ?? ''}
-              onChange={(e) => {
-                const v = e.target.value;
-                setGuestCount(v === '' ? null : parseInt(v, 10));
-              }}
-            >
-              <option value="" disabled>
-                Elija una respuesta
-              </option>
-              {guestOptions.map((n) => (
-                <option key={n} value={n}>
-                  {n}
-                </option>
-              ))}
-            </select>
-          </label>
+              {/* Combo de cantidad con placeholder */}
+              <label className="block">
+                <span className="text-sm">Cantidad</span>
+                <select
+                  className="mt-1 w-full rounded-lg border p-2"
+                  value={guestCount ?? ''}
+                  onChange={(e) => {
+                    const v = e.target.value;
+                    setGuestCount(v === '' ? null : parseInt(v, 10));
+                  }}
+                >
+                  <option value="" disabled>
+                    Elija una respuesta
+                  </option>
+                  {guestOptions.map((n) => (
+                    <option key={n} value={n}>
+                      {n}
+                    </option>
+                  ))}
+                </select>
+              </label>
 
-          {/* Nombres, uno por línea, solo si ya eligieron cantidad */}
-          {guestCount != null && (
-            <div className="space-y-3">
-              {attendeeNames.map((val, i) => (
-                <div key={i} className="flex flex-col">
-                  <span className="text-sm">Nombre de asistente {i + 1}</span>
-                  <input
-                    className="mt-1 w-full rounded-lg border p-2"
-                    value={val}
-                    onChange={(e) => {
-                      const next = [...attendeeNames];
-                      next[i] = e.target.value;
-                      setAttendeeNames(next);
-                    }}
-                    placeholder="Nombre y apellido"
-                  />
+              {/* Nombres por asistente: solo cuando ya hay cantidad */}
+              {guestCount != null && (
+                <div className="space-y-3">
+                  {attendeeNames.map((val, i) => (
+                    <div key={i} className="flex flex-col">
+                      <span className="text-sm">Nombre de asistente {i + 1}</span>
+                      <input
+                        className="mt-1 w-full rounded-lg border p-2"
+                        value={val}
+                        onChange={(e) => {
+                          const next = [...attendeeNames];
+                          next[i] = e.target.value;
+                          setAttendeeNames(next);
+                        }}
+                        placeholder="Nombre y apellido"
+                      />
+                    </div>
+                  ))}
                 </div>
-              ))}
-            </div>
+              )}
+            </>
           )}
+
+          {/* Botón: solo aparece después de elegir Sí o No */}
+          <button
+            type="submit"
+            className="w-full rounded-xl border px-4 py-2 font-medium hover:shadow"
+          >
+            {attending === 'yes' ? 'Confirmar asistencia' : 'Enviar respuesta'}
+          </button>
+
+          {!!status && <p className="text-sm">{status}</p>}
         </>
       )}
-
-      <button
-        type="submit"
-        className="w-full rounded-xl border px-4 py-2 font-medium hover:shadow"
-      >
-        {attending === 'yes' ? 'Confirmar asistencia' : 'Enviar respuesta'}
-      </button>
-
-      {!!status && <p className="text-sm">{status}</p>}
     </form>
   );
 }
