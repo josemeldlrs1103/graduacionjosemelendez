@@ -1,13 +1,15 @@
 // app/admin/page.tsx
 export const runtime = 'nodejs';
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
 
-import { supabaseServer } from '../../lib/supabaseServer';
+import { getSupabaseServer } from '../../lib/supabaseServer';
 import { getInvite } from '../../lib/invites';
 
 export default async function AdminPage({
   searchParams,
 }: {
-  searchParams: { [key: string]: string | string[] | undefined };
+  searchParams: Record<string, string | string[] | undefined>;
 }) {
   const key = (searchParams?.key || '') as string;
   if (!key || key !== process.env.ADMIN_TOKEN) {
@@ -19,7 +21,8 @@ export default async function AdminPage({
     );
   }
 
-  const { data, error } = await supabaseServer
+  const supabase = getSupabaseServer();
+  const { data, error } = await supabase
     .from('rsvps')
     .select('slug, guests, updated_at')
     .order('updated_at', { ascending: false });
@@ -51,10 +54,7 @@ export default async function AdminPage({
     <main style={{ maxWidth: 1080, margin: '40px auto', padding: 16, fontFamily: 'system-ui' }}>
       <header style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
         <h1 style={{ margin: 0 }}>Panel de RSVPs</h1>
-        <a
-          href={csvUrl}
-          style={{ padding: '10px 14px', borderRadius: 10, background: 'black', color: 'white', textDecoration: 'none', fontWeight: 600 }}
-        >
+        <a href={csvUrl} style={{ padding: '10px 14px', borderRadius: 10, background: 'black', color: 'white', textDecoration: 'none', fontWeight: 600 }}>
           Descargar CSV
         </a>
       </header>
@@ -99,10 +99,7 @@ export default async function AdminPage({
 function Th({ children }: { children: React.ReactNode }) {
   return <th style={{ textAlign: 'left', fontWeight: 700, borderBottom: '1px solid #ddd', padding: '10px 8px' }}>{children}</th>;
 }
-
-function Td({
-  children, center, mono, colSpan,
-}: { children: React.ReactNode; center?: boolean; mono?: boolean; colSpan?: number }) {
+function Td({ children, center, mono, colSpan }: { children: React.ReactNode; center?: boolean; mono?: boolean; colSpan?: number }) {
   return (
     <td
       colSpan={colSpan}
