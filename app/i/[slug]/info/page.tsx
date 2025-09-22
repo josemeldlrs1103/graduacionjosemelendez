@@ -1,21 +1,21 @@
-// app/i/[slug]/detail/page.tsx
+// app/i/[slug]/info/page.tsx
 import { notFound } from 'next/navigation';
 import { getInviteBySlug } from '@/lib/invitesServer';
-import { eventDateText, venueName, googleMapsUrl, wazeUrl } from '@/lib/config';
-
+import { EVENT, TIMEZONE, googleMapsUrl, wazeUrl } from '@/lib/config';
 
 export const dynamic = 'force-dynamic';
 
-export default async function InviteDetailPage({
+export default async function InviteInfoPage({
   params,
 }: { params: { slug: string } }) {
   const invite = await getInviteBySlug(params.slug);
   if (!invite) return notFound();
 
-  const dateText = config?.eventDateText ?? 'Próximamente';
-  const venue = config?.venueName ?? 'Lugar del evento';
-  const gmaps = config?.googleMapsUrl; // opcional
-  const waze = config?.wazeUrl;        // opcional
+  const dateText = new Date(EVENT.eventISO).toLocaleString('es-GT', {
+    timeZone: TIMEZONE,
+    dateStyle: 'full',
+    timeStyle: 'short',
+  });
 
   return (
     <main className="max-w-md mx-auto p-6">
@@ -25,20 +25,17 @@ export default async function InviteDetailPage({
 
       <div className="mt-4 space-y-1">
         <p><b>Fecha:</b> {dateText}</p>
-        <p><b>Lugar:</b> {venue}</p>
+        <p><b>Lugar:</b> {EVENT.venue.name}</p>
+        <p><b>Dirección:</b> {EVENT.venue.address}</p>
       </div>
 
       <div className="mt-6 grid gap-3">
-        {gmaps && (
-          <a className="rounded-xl border px-4 py-2 text-center" href={gmaps} target="_blank" rel="noreferrer">
-            Abrir en Google Maps
-          </a>
-        )}
-        {waze && (
-          <a className="rounded-xl border px-4 py-2 text-center" href={waze} target="_blank" rel="noreferrer">
-            Abrir en Waze
-          </a>
-        )}
+        <a className="rounded-xl border px-4 py-2 text-center" href={googleMapsUrl()} target="_blank" rel="noreferrer">
+          Abrir en Google Maps
+        </a>
+        <a className="rounded-xl border px-4 py-2 text-center" href={wazeUrl()} target="_blank" rel="noreferrer">
+          Abrir en Waze
+        </a>
         <a className="rounded-xl border px-4 py-2 text-center" href={`/i/${invite.slug}/confirm`}>
           Confirmar asistencia
         </a>
