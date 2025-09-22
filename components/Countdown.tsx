@@ -16,6 +16,10 @@ function diff(targetISO: string) {
   return { days, hours, minutes, seconds, done: ms === 0 };
 }
 
+function pad(n: number) {
+  return n.toString().padStart(2, '0');
+}
+
 export default function Countdown({ targetISO }: { targetISO: string }) {
   const [t, setT] = useState(() => diff(targetISO));
 
@@ -27,18 +31,18 @@ export default function Countdown({ targetISO }: { targetISO: string }) {
   if (t.done) return <p className="mt-2 text-sm">¡Es hoy! 🎉</p>;
 
   return (
-    <div className="mt-4 grid grid-cols-4 gap-2 text-center">
-      {[
-        { label: 'Días', value: t.days },
-        { label: 'Horas', value: t.hours },
-        { label: 'Min', value: t.minutes },
-        { label: 'Seg', value: t.seconds },
-      ].map((b) => (
-        <div key={b.label} className="rounded-xl border p-3">
-          <div className="text-2xl font-semibold tabular-nums">{b.value}</div>
-          <div className="text-xs opacity-70">{b.label}</div>
-        </div>
-      ))}
+    <div className="mt-4 flex items-baseline justify-center gap-4 text-center">
+      <span className="text-3xl font-semibold tabular-nums">{t.days}</span>
+      <span className="text-sm opacity-70">Días</span>
+
+      <span className="text-3xl font-semibold tabular-nums">{pad(t.hours)}</span>
+      <span className="text-sm opacity-70">Horas</span>
+
+      <span className="text-3xl font-semibold tabular-nums">{pad(t.minutes)}</span>
+      <span className="text-sm opacity-70">Min</span>
+
+      <span className="text-3xl font-semibold tabular-nums">{pad(t.seconds)}</span>
+      <span className="text-sm opacity-70">Seg</span>
     </div>
   );
 }
