@@ -16,7 +16,7 @@ export default async function InviteLanding({
       <p className="mt-2">Cupo asignado: {invite.limit_guests}</p>
 
       <div className="mt-6 grid gap-3">
-        <a className="rounded-xl border px-4 py-2 text-center" href={`/i/${invite.slug}/detail`}>
+        <a className="rounded-xl border px-4 py-2 text-center" href={`/i/${invite.slug}/info`}>
           Ver detalles
         </a>
         <a className="rounded-xl border px-4 py-2 text-center" href={`/i/${invite.slug}/confirm`}>
