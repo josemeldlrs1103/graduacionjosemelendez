@@ -5,7 +5,7 @@ import { useEffect, useMemo, useState } from 'react';
 type Props = {
   slug: string;
   limit: number;
-  nameDefault: string; // no lo mostramos ya, pero lo mantenemos por compat
+  nameDefault: string;
 };
 
 type Rsvp = {
@@ -13,7 +13,6 @@ type Rsvp = {
   guests: number;
   attending: boolean;
   note: string | null;
-  // Si alguna vez guardamos nombres por asistente, los podríamos leer aquí
 };
 
 export default function RsvpForm({ slug, limit }: Props) {
@@ -30,13 +29,10 @@ export default function RsvpForm({ slug, limit }: Props) {
   const [guestCount, setGuestCount] = useState<number>(1);
   const [attendeeNames, setAttendeeNames] = useState<string[]>(['']);
 
-  // 3) Nota opcional
-  const [note, setNote] = useState<string>('');
-
-  // 4) Estado de envío
+  // 3) Estado de envío
   const [status, setStatus] = useState<string>('');
 
-  // Precargar si ya existe un RSVP (solo para mantener “nota” / conteo)
+  // Precargar si ya existe un RSVP (para conservar conteo y, si existen, nombres en note)
   useEffect(() => {
     let alive = true;
     (async () => {
@@ -47,12 +43,25 @@ export default function RsvpForm({ slug, limit }: Props) {
         if (alive && r) {
           setAttending(r.attending ? 'yes' : 'no');
           setGuestCount(r.guests ?? 1);
+
+          // Intento de leer nombres desde note si vinieran serializados
+          let initialNames: string[] | null = null;
+          if (r.note && r.note.trim().startsWith('{"attendee_names"')) {
+            try {
+              const parsed = JSON.parse(r.note);
+              if (Array.isArray(parsed?.attendee_names)) {
+                initialNames = parsed.attendee_names.map((x: any) => String(x ?? ''));
+              }
+            } catch {
+              // noop
+            }
+          }
           setAttendeeNames((prev) => {
             const len = Math.max(1, r.guests ?? 1);
-            const arr = Array.from({ length: len }, (_, i) => prev[i] ?? '');
+            const base = initialNames ?? prev;
+            const arr = Array.from({ length: len }, (_, i) => base[i] ?? '');
             return arr;
           });
-          setNote(r.note ?? '');
         }
       } catch {
         // noop
@@ -60,7 +69,9 @@ export default function RsvpForm({ slug, limit }: Props) {
         if (alive) setLoading(false);
       }
     })();
-    return () => { alive = false; };
+    return () => {
+      alive = false;
+    };
   }, [slug]);
 
   // Ajusta el array de nombres cuando cambie el número de asistentes
@@ -80,17 +91,17 @@ export default function RsvpForm({ slug, limit }: Props) {
     e.preventDefault();
     setStatus('Guardando...');
 
+    // Guardamos los nombres dentro de note como JSON (hasta tener una columna propia)
+    const note =
+      attending === 'yes' && attendeeNames.some((n) => n.trim())
+        ? JSON.stringify({ attendee_names: attendeeNames })
+        : null;
+
     const payload = {
       slug,
       attending: attending === 'yes',
       guests: attending === 'yes' ? guestCount : 0,
-      // En lo que agregamos columna dedicada, serializamos nombres en note (si hay)
-      note:
-        attending === 'yes'
-          ? (attendeeNames.some((n) => n.trim())
-              ? `{"attendee_names": ${JSON.stringify(attendeeNames)}}${note ? `\n${note}` : ''}`
-              : note)
-          : note,
+      note, // puede ir null
     };
 
     try {
@@ -144,11 +155,11 @@ export default function RsvpForm({ slug, limit }: Props) {
             </select>
           </label>
 
-          {/* Nombres de asistentes */}
-          <div className="grid gap-3">
+          {/* Nombres de asistentes: cada uno en su propia línea */}
+          <div className="space-y-3">
             {attendeeNames.map((val, i) => (
-              <label key={i} className="block">
-                <span className="text-sm">Nombre del asistente {i + 1}</span>
+              <div key={i} className="flex flex-col">
+                <span className="text-sm">Nombre de asistente {i + 1}</span>
                 <input
                   className="mt-1 w-full rounded-lg border p-2"
                   value={val}
@@ -159,23 +170,11 @@ export default function RsvpForm({ slug, limit }: Props) {
                   }}
                   placeholder="Nombre y apellido"
                 />
-              </label>
+              </div>
             ))}
           </div>
         </>
       ) : null}
-
-      {/* Nota opcional (si quieres ocultarla cuando es “no”, puedes moverla dentro del bloque de asistencia) */}
-      <label className="block">
-        <span className="text-sm">Mensaje (opcional)</span>
-        <textarea
-          className="mt-1 w-full rounded-lg border p-2"
-          value={note}
-          onChange={(e) => setNote(e.target.value)}
-          rows={3}
-          placeholder="Alguna nota para los organizadores"
-        />
-      </label>
 
       <button
         type="submit"
