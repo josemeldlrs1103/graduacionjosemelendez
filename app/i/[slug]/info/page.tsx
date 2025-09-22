@@ -1,7 +1,8 @@
 // app/i/[slug]/detail/page.tsx
 import { notFound } from 'next/navigation';
 import { getInviteBySlug } from '@/lib/invitesServer';
-import config from '@/lib/config'; // asume que tienes fecha/lugar aquí
+import { eventDateText, venueName, googleMapsUrl, wazeUrl } from '@/lib/config';
+
 
 export const dynamic = 'force-dynamic';
 
