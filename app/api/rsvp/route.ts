@@ -1,9 +1,11 @@
 // app/api/rsvp/route.ts
 export const runtime = 'nodejs';
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
 
 import { NextResponse } from 'next/server';
-import { supabaseServer } from '../../../lib/supabaseServer';
 import { getInvite } from '../../../lib/invites';
+import { getSupabaseServer } from '../../../lib/supabaseServer';
 
 export async function GET(req: Request) {
   const { searchParams } = new URL(req.url);
@@ -14,7 +16,8 @@ export async function GET(req: Request) {
     return NextResponse.json({ ok: false, error: 'Invitación inexistente' }, { status: 404 });
   }
 
-  const { data, error } = await supabaseServer
+  const supabase = getSupabaseServer();
+  const { data, error } = await supabase
     .from('rsvps')
     .select('guests, updated_at')
     .eq('slug', slug)
@@ -28,12 +31,7 @@ export async function GET(req: Request) {
     ? { guests: data.guests as number, atISO: new Date(data.updated_at as string).toISOString() }
     : null;
 
-  return NextResponse.json({
-    ok: true,
-    slug,
-    limit: invite.guest_limit,
-    saved,
-  });
+  return NextResponse.json({ ok: true, slug, limit: invite.guest_limit, saved });
 }
 
 export async function POST(req: Request) {
@@ -43,28 +41,21 @@ export async function POST(req: Request) {
     const guests = Number(body?.guests);
 
     const invite = getInvite(slug);
-    if (!invite) {
-      return NextResponse.json({ ok: false, error: 'Invitación inexistente' }, { status: 404 });
-    }
-    if (!Number.isInteger(guests) || guests < 1) {
-      return NextResponse.json({ ok: false, error: 'Cantidad inválida' }, { status: 400 });
-    }
-    if (guests > invite.guest_limit) {
-      return NextResponse.json({ ok: false, error: `Máximo permitido: ${invite.guest_limit}` }, { status: 400 });
-    }
+    if (!invite) return NextResponse.json({ ok: false, error: 'Invitación inexistente' }, { status: 404 });
+    if (!Number.isInteger(guests) || guests < 1) return NextResponse.json({ ok: false, error: 'Cantidad inválida' }, { status: 400 });
+    if (guests > invite.guest_limit) return NextResponse.json({ ok: false, error: `Máximo permitido: ${invite.guest_limit}` }, { status: 400 });
 
-    const upsert = await supabaseServer
+    const supabase = getSupabaseServer();
+    const upsert = await supabase
       .from('rsvps')
       .upsert({ slug, guests }, { onConflict: 'slug' })
       .select('guests, updated_at')
       .single();
 
-    if (upsert.error) {
-      return NextResponse.json({ ok: false, error: 'DB error (UPSERT)' }, { status: 500 });
-    }
+    if (upsert.error) return NextResponse.json({ ok: false, error: 'DB error (UPSERT)' }, { status: 500 });
 
-    // (Opcional) historial: comenta si no creaste la tabla
-    await supabaseServer.from('rsvps_history').insert({ slug, guests });
+    // opcional historial
+    await supabase.from('rsvps_history').insert({ slug, guests });
 
     return NextResponse.json({
       ok: true,

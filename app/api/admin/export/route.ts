@@ -1,7 +1,9 @@
 // app/api/admin/export/route.ts
 export const runtime = 'nodejs';
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
 
-import { supabaseServer } from '../../../../lib/supabaseServer';
+import { getSupabaseServer } from '../../../../lib/supabaseServer';
 import { getInvite } from '../../../../lib/invites';
 
 export async function GET(req: Request) {
@@ -11,7 +13,8 @@ export async function GET(req: Request) {
     return new Response('Unauthorized', { status: 401 });
   }
 
-  const { data, error } = await supabaseServer
+  const supabase = getSupabaseServer(); // ← crear cliente aquí
+  const { data, error } = await supabase
     .from('rsvps')
     .select('slug, guests, updated_at')
     .order('updated_at', { ascending: false });
