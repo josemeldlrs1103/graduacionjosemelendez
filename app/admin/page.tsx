@@ -77,10 +77,6 @@ export default function AdminGate() {
 
         {error && <p className="mt-2 text-sm text-red-600">{error}</p>}
 
-        <p className="mt-4 text-xs opacity-70">
-          Consejo: puedes compartir enlaces como{' '}
-          <code>/admin?key=TU_ADMIN_TOKEN</code> para saltar este paso.
-        </p>
       </div>
     </main>
   );

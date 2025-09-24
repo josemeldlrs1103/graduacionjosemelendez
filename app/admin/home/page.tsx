@@ -68,9 +68,6 @@ export default function AdminHub() {
         </Link>
       </div>
 
-      <p className="text-xs opacity-70">
-        Puedes añadir <code>?key=TU_ADMIN_TOKEN</code> a la URL para que las secciones lo reciban automáticamente.
-      </p>
     </main>
   );
 }
