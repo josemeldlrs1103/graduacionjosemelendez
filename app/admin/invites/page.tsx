@@ -200,7 +200,6 @@ export default function AdminInvitesPage() {
               <tr className="border-b">
                 <th className="text-left py-2">Nombre del(los) invitado(s)</th>
                 <th className="text-left py-2">Límite</th>
-                <th className="text-left py-2">Slug</th>
                 <th className="text-left py-2">Acciones</th>
               </tr>
             </thead>
