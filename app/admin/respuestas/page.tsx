@@ -40,7 +40,16 @@ export default function AdminRespuestasPage() {
       });
       const j = await res.json();
       if (!res.ok) throw new Error(j?.error || 'Error al cargar');
-      setRows((j.rsvps || []) as RsvpRow[]);
+     // dentro de load() justo antes de setRows(...)
+      setRows(
+        (j.rsvps || []).map((r: any) => ({
+          slug: String(r.slug),
+          attending: r.attending === true,              // ← boolean estricto
+          guests: Number.isFinite(r.guests) ? r.guests : 0,
+          attendee_names: Array.isArray(r.attendee_names) ? r.attendee_names : null,
+          updated_at: r.updated_at ?? null,
+        }))
+      );
     } catch (e: any) {
       setError(e.message || 'Error al cargar');
       setRows(null);
@@ -51,11 +60,11 @@ export default function AdminRespuestasPage() {
 
   // Separación en dos tablas
   const yesRows = useMemo(
-    () => (rows || []).filter(r => !!r.attending),
+    () => (rows || []).filter((r) => r.attending === true),
     [rows]
   );
   const noRows = useMemo(
-    () => (rows || []).filter(r => !r.attending),
+    () => (rows || []).filter((r) => r.attending === false),
     [rows]
   );
 
