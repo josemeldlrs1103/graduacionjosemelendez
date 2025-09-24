@@ -34,23 +34,28 @@ export default function AdminInvitesPage() {
   }, []);
 
   async function load(tok: string) {
-    setLoading(true);
-    setError('');
-    try {
-      const res = await fetch('/api/admin/invites', {
-        headers: { 'x-admin-token': tok },
-        cache: 'no-store',
-      });
-      const j = await res.json();
-      if (!res.ok) throw new Error(j?.error || 'Error al cargar');
-      setRows(j.invites || []);
-    } catch (e: any) {
-      setError(e.message || 'Error al cargar');
-      setRows(null);
-    } finally {
-      setLoading(false);
-    }
+  setLoading(true);
+  setError('');
+  try {
+    const res = await fetch('/api/admin/invites', {
+      headers: { 'x-admin-token': tok },
+      cache: 'no-store',
+    });
+    const j = await res.json();
+    if (!res.ok) throw new Error(j?.error || 'Error al cargar');
+    setRows(
+      (j.invites || []).map((r: Row) => ({
+        ...r,
+        _dirty: false, // limpio al venir del server
+      }))
+    );
+  } catch (e: any) {
+    setError(e.message || 'Error al cargar');
+    setRows(null);
+  } finally {
+    setLoading(false);
   }
+}
 
   // Edición en memoria
   function updateCell(slug: string, patch: Partial<Row>) {
@@ -63,34 +68,40 @@ export default function AdminInvitesPage() {
 
   // Guardar fila (update)
   async function saveRow(row: Row) {
-    if (!token) return setError('Falta token');
-    try {
-      const res = await fetch('/api/admin/invites', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'x-admin-token': token,
-        },
-        body: JSON.stringify({
-          slug: row.slug,
-          name: row.name,
-          limit_guests: row.limit_guests,
-        }),
-      });
-      const j = await res.json();
-      if (!res.ok) throw new Error(j?.error || 'Error al guardar');
-      // limpia el flag _dirty y sincroniza
-      setRows((prev) =>
-        (prev || []).map((r) =>
-          r.slug === row.slug
-            ? { ...j.invite, _dirty: false }
-            : r
-        )
-      );
-    } catch (e: any) {
-      setError(e.message || 'Error al guardar');
-    }
+  if (!token) return setError('Falta token');
+
+  // Normaliza datos antes de enviar
+  const name = (row.name ?? '').trim();
+  const limit =
+    typeof row.limit_guests === 'number'
+      ? row.limit_guests
+      : parseInt(String(row.limit_guests || 0), 10);
+
+  if (!name) return setError('El nombre no puede estar vacío');
+  if (!Number.isFinite(limit) || limit <= 0) return setError('Límite inválido');
+
+  try {
+    const res = await fetch('/api/admin/invites', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-admin-token': token,
+      },
+      body: JSON.stringify({
+        slug: row.slug,          // update existente
+        name,
+        limit_guests: limit,
+      }),
+    });
+    const j = await res.json();
+    if (!res.ok) throw new Error(j?.error || 'Error al guardar');
+
+    // ✅ Refresca desde servidor para verificar que persistió
+    await load(token);
+  } catch (e: any) {
+    setError(e.message || 'Error al guardar');
   }
+}
 
   // Eliminar fila
  // 1) Función
