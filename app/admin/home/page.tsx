@@ -23,24 +23,6 @@ export default function AdminHub() {
     <main className="max-w-xl mx-auto p-6 space-y-4">
       <h1 className="text-2xl font-semibold">Panel de administración</h1>
 
-      {/* Campo para guardar token localmente (opcional) */}
-      <div className="flex gap-2">
-        <input
-          className="flex-1 rounded-lg border p-2"
-          type="password"
-          placeholder="ADMIN_TOKEN (opcional)"
-          value={key}
-          onChange={(e) => setKey(e.target.value)}
-        />
-        <button
-          className="rounded-xl border px-4 py-2 hover:shadow"
-          onClick={() => key && localStorage.setItem('admin_token', key)}
-          title="Guardar token localmente"
-        >
-          Guardar token
-        </button>
-      </div>
-
       {/* Botones SIEMPRE visibles */}
       <div className="grid gap-3">
         <Link
