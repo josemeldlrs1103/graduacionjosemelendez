@@ -17,7 +17,6 @@ export default function AdminRespuestasPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [origin, setOrigin] = useState('');
-  const [onlyYes, setOnlyYes] = useState(false);
 
   // token: lee ?key= o localStorage y carga
   useEffect(() => {
@@ -56,23 +55,7 @@ export default function AdminRespuestasPage() {
   // Construye URL a la invitación
   const linkFor = (slug: string) => `${origin || ''}/i/${encodeURIComponent(slug)}`;
 
-  // Datos filtrados
-  const data = useMemo(() => {
-    const all = rows || [];
-    return onlyYes ? all.filter((r) => r.attending) : all;
-  }, [rows, onlyYes]);
-
-  // Totales
-  const totals = useMemo(() => {
-    const all = rows || [];
-    const responded = all.length;
-    const yes = all.filter((r) => r.attending);
-    const yesCount = yes.length;
-    const yesGuests = yes.reduce((acc, r) => acc + (r.guests || 0), 0);
-    return { responded, yesCount, yesGuests };
-  }, [rows]);
-
-  // Exportar CSV
+  // Exportar CSV (todo lo que haya en rows)
   function exportCsv() {
     const hdr = ['slug', 'asiste', 'invitados', 'nombres', 'actualizado_en'];
     const lines = [hdr.join(',')];
@@ -148,17 +131,6 @@ export default function AdminRespuestasPage() {
 
       {/* Controles */}
       <div className="flex flex-wrap items-center gap-3">
-        <div className="rounded-xl border px-3 py-2 text-sm">
-          Respondieron: <b>{totals.responded}</b> &nbsp;|&nbsp; Sí: <b>{totals.yesCount}</b> &nbsp;|&nbsp; Invitados confirmados: <b>{totals.yesGuests}</b>
-        </div>
-        <label className="inline-flex items-center gap-2 text-sm">
-          <input
-            type="checkbox"
-            checked={onlyYes}
-            onChange={(e) => setOnlyYes(e.target.checked)}
-          />
-          Mostrar solo “Sí”
-        </label>
         <button
           onClick={() => token && load(token)}
           className="rounded-xl border px-3 py-2 hover:shadow text-sm"
@@ -177,8 +149,8 @@ export default function AdminRespuestasPage() {
 
       {error && <p className="text-sm">{error}</p>}
 
-      {/* Tabla */}
-      {data && (
+      {/* Tabla (todo rsvps) */}
+      {rows && (
         <div className="overflow-x-auto">
           <table className="w-full text-sm border-collapse">
             <thead>
@@ -193,7 +165,7 @@ export default function AdminRespuestasPage() {
               </tr>
             </thead>
             <tbody>
-              {data.map((r) => {
+              {rows.map((r) => {
                 const url = linkFor(r.slug);
                 return (
                   <tr key={r.slug} className="border-b align-top">
@@ -228,7 +200,7 @@ export default function AdminRespuestasPage() {
                   </tr>
                 );
               })}
-              {!data.length && (
+              {rows.length === 0 && (
                 <tr>
                   <td className="py-6 text-center opacity-70" colSpan={7}>
                     No hay respuestas aún.
