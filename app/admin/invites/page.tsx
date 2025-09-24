@@ -225,9 +225,6 @@ export default function AdminInvitesPage() {
                       }
                     />
                   </td>
-                  <td className="py-2 pr-2 whitespace-nowrap">
-                    <code>{r.slug}</code>
-                  </td>
                   <td className="py-2">
                     <div className="flex gap-2">
                       <button
