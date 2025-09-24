@@ -16,11 +16,9 @@ export default function AdminRespuestasPage() {
   const [rows, setRows] = useState<RsvpRow[] | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-  const [origin, setOrigin] = useState('');
 
   // token: lee ?key= o localStorage y carga
   useEffect(() => {
-    if (typeof window !== 'undefined') setOrigin(window.location.origin);
     const sp = new URLSearchParams(window.location.search);
     const fromUrl = sp.get('key') || '';
     const saved = !fromUrl ? localStorage.getItem('admin_token') || '' : '';
@@ -42,7 +40,6 @@ export default function AdminRespuestasPage() {
       });
       const j = await res.json();
       if (!res.ok) throw new Error(j?.error || 'Error al cargar');
-      // esperamos { rsvps: [...] }
       setRows((j.rsvps || []) as RsvpRow[]);
     } catch (e: any) {
       setError(e.message || 'Error al cargar');
@@ -52,44 +49,25 @@ export default function AdminRespuestasPage() {
     }
   }
 
-  // Construye URL a la invitación
-  const linkFor = (slug: string) => `${origin || ''}/i/${encodeURIComponent(slug)}`;
+  // Separación en dos tablas
+  const yesRows = useMemo(
+    () => (rows || []).filter(r => !!r.attending),
+    [rows]
+  );
+  const noRows = useMemo(
+    () => (rows || []).filter(r => !r.attending),
+    [rows]
+  );
 
-  // Exportar CSV (todo lo que haya en rows)
-  function exportCsv() {
-    const hdr = ['slug', 'asiste', 'invitados', 'nombres', 'actualizado_en'];
-    const lines = [hdr.join(',')];
-    (rows || []).forEach((r) => {
-      const nombres = Array.isArray(r.attendee_names) ? r.attendee_names.join(' | ') : '';
-      const cols = [
-        r.slug,
-        r.attending ? 'SI' : 'NO',
-        String(r.guests ?? 0),
-        `"${nombres.replace(/"/g, '""')}"`,
-        r.updated_at ? new Date(r.updated_at).toISOString() : '',
-      ];
-      lines.push(cols.join(','));
-    });
-    const blob = new Blob([lines.join('\n')], { type: 'text/csv;charset=utf-8;' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    const stamp = new Date().toISOString().slice(0, 19).replace(/[:T]/g, '-');
-    a.href = url;
-    a.download = `rsvps-${stamp}.csv`;
-    a.click();
-    URL.revokeObjectURL(url);
-  }
-
-  // Copiar enlace
-  async function copy(url: string) {
-    try {
-      await navigator.clipboard.writeText(url);
-      setError('Enlace copiado ✓');
-      setTimeout(() => setError(''), 1200);
-    } catch {
-      setError('No se pudo copiar el enlace');
-    }
-  }
+  // Totales (suma de guests en cada tabla)
+  const yesTotal = useMemo(
+    () => yesRows.reduce((acc, r) => acc + (r.guests || 0), 0),
+    [yesRows]
+  );
+  const noTotal = useMemo(
+    () => noRows.reduce((acc, r) => acc + (r.guests || 0), 0),
+    [noRows]
+  );
 
   // Volver al panel conservando ?key=
   const backHref = useMemo(() => {
@@ -97,9 +75,98 @@ export default function AdminRespuestasPage() {
     return `/admin/home${q}`;
   }, [token]);
 
+  // Exportar ambas tablas a PDF (usa print del navegador)
+  function exportPdf() {
+    const stamp = new Date().toLocaleString('es-GT');
+    const fmt = (date?: string | null) =>
+      date ? new Date(date).toLocaleString('es-GT') : '—';
+    const escape = (s: string) =>
+      s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+
+    const yesRowsHtml = yesRows.map(r => `
+      <tr>
+        <td>${r.guests ?? 0}</td>
+        <td>${Array.isArray(r.attendee_names) && r.attendee_names.length ? escape(r.attendee_names.join(', ')) : '—'}</td>
+        <td>${fmt(r.updated_at)}</td>
+      </tr>
+    `).join('');
+
+    const noRowsHtml = noRows.map(r => `
+      <tr>
+        <td>${r.guests ?? 0}</td>
+        <td>${Array.isArray(r.attendee_names) && r.attendee_names.length ? escape(r.attendee_names.join(', ')) : '—'}</td>
+        <td>${fmt(r.updated_at)}</td>
+      </tr>
+    `).join('');
+
+    const html = `
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8" />
+<title>RSVPs — ${stamp}</title>
+<style>
+  body { font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial; margin: 24px; }
+  h1 { font-size: 20px; margin: 0 0 12px; }
+  h2 { font-size: 16px; margin: 20px 0 8px; }
+  table { width: 100%; border-collapse: collapse; font-size: 12px; }
+  th, td { border: 1px solid #ddd; padding: 8px; text-align: left; vertical-align: top; }
+  th { background: #f7f7f7; }
+  .tot { margin: 6px 0 16px; font-weight: 600; }
+  @media print {
+    a { color: inherit; text-decoration: none; }
+  }
+</style>
+</head>
+<body>
+  <h1>Respuestas (exportado ${escape(stamp)})</h1>
+
+  <h2>Asisten (Sí)</h2>
+  <div class="tot">Total de personas confirmadas: ${yesTotal}</div>
+  <table>
+    <thead>
+      <tr>
+        <th># Confirmados</th>
+        <th>Nombres</th>
+        <th>Actualizado</th>
+      </tr>
+    </thead>
+    <tbody>
+      ${yesRowsHtml || '<tr><td colspan="3" style="text-align:center;opacity:.7">— Sin registros —</td></tr>'}
+    </tbody>
+  </table>
+
+  <h2>No asisten (No)</h2>
+  <div class="tot">Total de personas en “No”: ${noTotal}</div>
+  <table>
+    <thead>
+      <tr>
+        <th># Confirmados</th>
+        <th>Nombres</th>
+        <th>Actualizado</th>
+      </tr>
+    </thead>
+    <tbody>
+      ${noRowsHtml || '<tr><td colspan="3" style="text-align:center;opacity:.7">— Sin registros —</td></tr>'}
+    </tbody>
+  </table>
+
+  <script>window.print();</script>
+</body>
+</html>`;
+    const w = window.open('', '_blank');
+    if (!w) {
+      alert('Bloqueado por el navegador. Habilita las ventanas emergentes para exportar a PDF.');
+      return;
+    }
+    w.document.open();
+    w.document.write(html);
+    w.document.close();
+  }
+
   if (loading) {
     return (
-      <main className="max-w-4xl mx-auto p-6">
+      <main className="max-w-6xl mx-auto p-6">
         <h1 className="text-2xl font-semibold">Respuestas</h1>
         <p className="mt-2">Cargando…</p>
       </main>
@@ -107,7 +174,7 @@ export default function AdminRespuestasPage() {
   }
 
   return (
-    <main className="max-w-6xl mx-auto p-6 space-y-4">
+    <main className="max-w-6xl mx-auto p-6 space-y-6">
       <h1 className="text-2xl font-semibold">Respuestas</h1>
 
       {/* Token si no hay */}
@@ -139,59 +206,95 @@ export default function AdminRespuestasPage() {
           Refrescar
         </button>
         <button
-          onClick={exportCsv}
+          onClick={exportPdf}
           className="rounded-xl border px-3 py-2 hover:shadow text-sm"
-          title="Exportar CSV"
+          title="Exportar PDF"
         >
-          Exportar CSV
+          Exportar PDF
         </button>
       </div>
 
       {error && <p className="text-sm">{error}</p>}
 
-      {/* Tabla (todo rsvps) */}
-      {rows && (
+      {/* Tabla: Sí asisten */}
+      <section>
+        <h2 className="text-lg font-semibold">Asisten (Sí)</h2>
+        <p className="mb-2">Total de personas confirmadas: <b>{yesTotal}</b></p>
         <div className="overflow-x-auto">
           <table className="w-full text-sm border-collapse">
             <thead>
               <tr className="border-b">
-                <th className="text-left py-2">Asiste</th>
                 <th className="text-left py-2"># Confirmados</th>
                 <th className="text-left py-2">Nombres</th>
                 <th className="text-left py-2">Actualizado</th>
               </tr>
             </thead>
             <tbody>
-              {rows.map((r) => {
-                const url = linkFor(r.slug);
-                return (
-                  <tr key={r.slug} className="border-b align-top">
-                    <td className="py-2 pr-2">{r.attending ? 'Sí' : 'No'}</td>
-                    <td className="py-2 pr-2">{r.guests}</td>
-                    <td className="py-2 pr-2">
-                      {Array.isArray(r.attendee_names) && r.attendee_names.length
-                        ? r.attendee_names.join(', ')
-                        : '—'}
-                    </td>
-                    <td className="py-2 pr-2">
-                      {r.updated_at
-                        ? new Date(r.updated_at).toLocaleString('es-GT')
-                        : '—'}
-                    </td>
-                  </tr>
-                );
-              })}
-              {rows.length === 0 && (
+              {yesRows.length ? yesRows.map((r) => (
+                <tr key={r.slug} className="border-b align-top">
+                  <td className="py-2 pr-2">{r.guests}</td>
+                  <td className="py-2 pr-2">
+                    {Array.isArray(r.attendee_names) && r.attendee_names.length
+                      ? r.attendee_names.join(', ')
+                      : '—'}
+                  </td>
+                  <td className="py-2 pr-2">
+                    {r.updated_at
+                      ? new Date(r.updated_at).toLocaleString('es-GT')
+                      : '—'}
+                  </td>
+                </tr>
+              )) : (
                 <tr>
-                  <td className="py-6 text-center opacity-70" colSpan={7}>
-                    No hay respuestas aún.
+                  <td className="py-6 text-center opacity-70" colSpan={3}>
+                    No hay respuestas con “Sí”.
                   </td>
                 </tr>
               )}
             </tbody>
           </table>
         </div>
-      )}
+      </section>
+
+      {/* Tabla: No asisten */}
+      <section>
+        <h2 className="text-lg font-semibold">No asisten (No)</h2>
+        <p className="mb-2">Total de personas en “No”: <b>{noTotal}</b></p>
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm border-collapse">
+            <thead>
+              <tr className="border-b">
+                <th className="text-left py-2"># Confirmados</th>
+                <th className="text-left py-2">Nombres</th>
+                <th className="text-left py-2">Actualizado</th>
+              </tr>
+            </thead>
+            <tbody>
+              {noRows.length ? noRows.map((r) => (
+                <tr key={r.slug} className="border-b align-top">
+                  <td className="py-2 pr-2">{r.guests}</td>
+                  <td className="py-2 pr-2">
+                    {Array.isArray(r.attendee_names) && r.attendee_names.length
+                      ? r.attendee_names.join(', ')
+                      : '—'}
+                  </td>
+                  <td className="py-2 pr-2">
+                    {r.updated_at
+                      ? new Date(r.updated_at).toLocaleString('es-GT')
+                      : '—'}
+                  </td>
+                </tr>
+              )) : (
+                <tr>
+                  <td className="py-6 text-center opacity-70" colSpan={3}>
+                    No hay respuestas con “No”.
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+      </section>
 
       {/* Volver al panel */}
       <div className="flex justify-end mt-6">
