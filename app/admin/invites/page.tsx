@@ -133,7 +133,7 @@ Se actualizará este registro en la base de datos.`;
     const tok = token || localStorage.getItem('admin_token') || '';
     if (!tok) return setError('Falta token');
 
-    const msg = `¿Eliminar a “${row.name}” (slug: ${row.slug})?\nLímite: ${row.limit_guests}\n\nEsta acción quitará su invitación.`;
+    const msg = `¿Eliminar a “${row.name}”?\nInvitados: ${row.limit_guests}\n\nEsta acción quitará su invitación.`;
     if (!confirm(msg)) return;
 
     try {
@@ -322,7 +322,7 @@ Se actualizará este registro en la base de datos.`;
                   />
                 </td>
                 <td className="py-2 pr-2 opacity-60">
-                  (slug auto)
+                  (...)
                 </td>
                 <td className="py-2">
                   <button
@@ -350,6 +350,17 @@ Se actualizará este registro en la base de datos.`;
           </button>
         </div>
       )}
+
+      {/* Botón volver a Home */}
+        <div className="flex justify-end mt-6">
+        <button
+            onClick={() => { window.location.href = '/admin/home'; }}
+            className="rounded-xl border px-4 py-2 hover:shadow"
+        >
+            Volver al panel principal
+        </button>
+        </div>
+
     </main>
   );
 }
