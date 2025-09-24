@@ -241,7 +241,7 @@ async function deleteRow(row: Row) {
                         Guardar
                       </button>
                       <button
-                        onClick={() => deleteRow(r.slug)}
+                        onClick={() => deleteRow(r)}
                         className="rounded-xl border px-3 py-2 hover:shadow"
                       >
                         Eliminar
