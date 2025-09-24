@@ -251,7 +251,6 @@ Se actualizará este registro en la base de datos.`;
               <tr className="border-b">
                 <th className="text-left py-2">Nombre del(los) invitado(s)</th>
                 <th className="text-left py-2">Límite</th>
-                <th className="text-left py-2">Slug</th>
                 <th className="text-left py-2">Acciones</th>
               </tr>
             </thead>
@@ -278,9 +277,6 @@ Se actualizará este registro en la base de datos.`;
                         });
                       }}
                     />
-                  </td>
-                  <td className="py-2 pr-2 whitespace-nowrap">
-                    <code>{r.slug}</code>
                   </td>
                   <td className="py-2">
                     <div className="flex gap-2">
