@@ -155,13 +155,10 @@ export default function AdminRespuestasPage() {
           <table className="w-full text-sm border-collapse">
             <thead>
               <tr className="border-b">
-                <th className="text-left py-2">Slug</th>
                 <th className="text-left py-2">Asiste</th>
-                <th className="text-left py-2">#</th>
+                <th className="text-left py-2"># Confirmados</th>
                 <th className="text-left py-2">Nombres</th>
                 <th className="text-left py-2">Actualizado</th>
-                <th className="text-left py-2">Enlace</th>
-                <th className="text-left py-2">Acciones</th>
               </tr>
             </thead>
             <tbody>
@@ -169,7 +166,6 @@ export default function AdminRespuestasPage() {
                 const url = linkFor(r.slug);
                 return (
                   <tr key={r.slug} className="border-b align-top">
-                    <td className="py-2 pr-2"><code>{r.slug}</code></td>
                     <td className="py-2 pr-2">{r.attending ? 'Sí' : 'No'}</td>
                     <td className="py-2 pr-2">{r.guests}</td>
                     <td className="py-2 pr-2">
@@ -181,21 +177,6 @@ export default function AdminRespuestasPage() {
                       {r.updated_at
                         ? new Date(r.updated_at).toLocaleString('es-GT')
                         : '—'}
-                    </td>
-                    <td className="py-2 pr-2">
-                      <div className="max-w-[280px] truncate">
-                        <a className="underline" href={url} target="_blank" rel="noopener noreferrer" title={url}>
-                          {url}
-                        </a>
-                      </div>
-                    </td>
-                    <td className="py-2">
-                      <button
-                        onClick={() => copy(url)}
-                        className="rounded-xl border px-3 py-2 hover:shadow"
-                      >
-                        Copiar enlace
-                      </button>
                     </td>
                   </tr>
                 );
