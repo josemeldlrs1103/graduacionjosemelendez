@@ -16,6 +16,9 @@ export default function AdminLinksPage() {
   const [error, setError] = useState('');
   const [origin, setOrigin] = useState('');
 
+  // feedback por fila
+  const [lastCopiedSlug, setLastCopiedSlug] = useState<string | null>(null);
+
   // Lee ?key= o localStorage y carga
   useEffect(() => {
     if (typeof window !== 'undefined') setOrigin(window.location.origin);
@@ -53,11 +56,12 @@ export default function AdminLinksPage() {
   const makeLink = (slug: string) =>
     `${origin || ''}/i/${encodeURIComponent(slug)}`;
 
-  async function copy(text: string) {
+  async function copy(text: string, slug: string) {
     try {
       await navigator.clipboard.writeText(text);
-      setError('Enlace copiado ✓');
-      setTimeout(() => setError(''), 1200);
+      setLastCopiedSlug(slug);
+      setError(''); // limpia mensajes antiguos
+      setTimeout(() => setLastCopiedSlug((s) => (s === slug ? null : s)), 1200);
     } catch {
       setError('No se pudo copiar el enlace');
     }
@@ -101,6 +105,10 @@ export default function AdminLinksPage() {
         </div>
       )}
 
+      {/* Avisos accesibles */}
+      <p className="sr-only" aria-live="polite">
+        {lastCopiedSlug ? 'Enlace copiado' : ''}
+      </p>
       {error && <p className="text-sm">{error}</p>}
 
       {/* Tabla de enlaces */}
@@ -118,6 +126,7 @@ export default function AdminLinksPage() {
             <tbody>
               {rows.map((r) => {
                 const url = makeLink(r.slug);
+                const copied = lastCopiedSlug === r.slug;
                 return (
                   <tr key={r.slug} className="border-b align-top">
                     <td className="py-2 pr-2">{r.name}</td>
@@ -140,10 +149,13 @@ export default function AdminLinksPage() {
                     <td className="py-2">
                       <div className="flex gap-2">
                         <button
-                          onClick={() => copy(url)}
-                          className="rounded-xl border px-3 py-2 hover:shadow"
+                          onClick={() => copy(url, r.slug)}
+                          className={`rounded-xl border px-3 py-2 hover:shadow ${
+                            copied ? 'opacity-80' : ''
+                          }`}
+                          title={copied ? 'Copiado' : 'Copiar enlace'}
                         >
-                          Copiar enlace
+                          {copied ? 'Copiado ✓' : 'Copiar enlace'}
                         </button>
                       </div>
                     </td>
@@ -158,7 +170,9 @@ export default function AdminLinksPage() {
       {/* Volver al panel */}
       <div className="flex justify-end mt-6">
         <button
-          onClick={() => { window.location.href = backHref; }}
+          onClick={() => {
+            window.location.href = backHref;
+          }}
           className="rounded-xl border px-4 py-2 hover:shadow"
         >
           Volver al panel principal
