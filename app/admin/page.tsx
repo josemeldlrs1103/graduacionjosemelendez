@@ -1,117 +1,87 @@
 // app/admin/page.tsx
-export const runtime = 'nodejs';
-export const dynamic = 'force-dynamic';
-export const revalidate = 0;
+'use client';
 
-import { getSupabaseServer } from '../../lib/supabaseServer';
-import { getInvite } from '../../lib/invites';
+import { useEffect, useState } from 'react';
 
-export default async function AdminPage({
-  searchParams,
-}: {
-  searchParams: Record<string, string | string[] | undefined>;
-}) {
-  const key = (searchParams?.key || '') as string;
-  if (!key || key !== process.env.ADMIN_TOKEN) {
-    return (
-      <main style={{ maxWidth: 720, margin: '40px auto', padding: 16, fontFamily: 'system-ui' }}>
-        <h1>401 — No autorizado</h1>
-        <p>Usa: <code>/admin?key=TU_TOKEN</code></p>
-      </main>
-    );
+export default function AdminGate() {
+  const [token, setToken] = useState('');
+  const [checking, setChecking] = useState(false);
+  const [error, setError] = useState('');
+
+  // Si ya hay key en URL o en localStorage, intenta validar automáticamente
+  useEffect(() => {
+    const sp = new URLSearchParams(window.location.search);
+    const fromUrl = sp.get('key') || '';
+    const saved = !fromUrl ? localStorage.getItem('admin_token') || '' : '';
+    const initial = fromUrl || saved || '';
+    if (initial) {
+      setToken(initial);
+      void submit(initial);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  async function submit(tok?: string) {
+    const t = tok ?? token;
+    if (!t) return;
+    setChecking(true);
+    setError('');
+    try {
+      const res = await fetch('/api/admin/validate', {
+        headers: { 'x-admin-token': t },
+        cache: 'no-store',
+      });
+      if (!res.ok) throw new Error('Token inválido');
+      // guarda localmente y redirige al hub con ?key=
+      localStorage.setItem('admin_token', t);
+      const url = `/admin/home?key=${encodeURIComponent(t)}`;
+      window.location.href = url;
+    } catch (e: any) {
+      setError(e.message || 'Error validando token');
+    } finally {
+      setChecking(false);
+    }
   }
-
-  const supabase = getSupabaseServer();
-  const { data, error } = await supabase
-    .from('rsvps')
-    .select('slug, guests, updated_at')
-    .order('updated_at', { ascending: false });
-
-  if (error) {
-    return (
-      <main style={{ maxWidth: 720, margin: '40px auto', padding: 16, fontFamily: 'system-ui' }}>
-        <h1>Error al cargar</h1>
-        <pre>{String(error.message || error)}</pre>
-      </main>
-    );
-  }
-
-  const rows = (data ?? []).map((r) => {
-    const inv = getInvite(r.slug);
-    return {
-      slug: r.slug,
-      name: inv?.name ?? '(slug no encontrado)',
-      limit: inv?.guest_limit ?? '—',
-      guests: r.guests,
-      updated_at: new Date(r.updated_at as string).toLocaleString('es-GT'),
-    };
-  });
-
-  const totalAsistentes = rows.reduce((acc, r) => acc + Number(r.guests || 0), 0);
-  const csvUrl = `/api/admin/export?key=${encodeURIComponent(key)}`;
 
   return (
-    <main style={{ maxWidth: 1080, margin: '40px auto', padding: 16, fontFamily: 'system-ui' }}>
-      <header style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
-        <h1 style={{ margin: 0 }}>Panel de RSVPs</h1>
-        <a href={csvUrl} style={{ padding: '10px 14px', borderRadius: 10, background: 'black', color: 'white', textDecoration: 'none', fontWeight: 600 }}>
-          Descargar CSV
-        </a>
-      </header>
+    <main className="min-h-screen grid place-items-center p-6">
+      {/* Fondo tenue tipo modal */}
+      <div className="fixed inset-0 bg-black/30" />
 
-      <p style={{ marginTop: 8 }}>
-        Registros: <strong>{rows.length}</strong> · Personas confirmadas: <strong>{totalAsistentes}</strong>
-      </p>
+      {/* Ventana modal */}
+      <div className="relative z-10 w-full max-w-sm rounded-2xl bg-white p-6 shadow-lg">
+        <h1 className="text-xl font-semibold">Acceso de administrador</h1>
+        <p className="mt-1 text-sm opacity-80">
+          Ingresa tu <code>ADMIN_TOKEN</code> para continuar.
+        </p>
 
-      <div style={{ overflowX: 'auto', marginTop: 12 }}>
-        <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: 720 }}>
-          <thead>
-            <tr>
-              <Th>Slug</Th>
-              <Th>Invitado</Th>
-              <Th>Cupo</Th>
-              <Th>Asistentes</Th>
-              <Th>Actualizado</Th>
-            </tr>
-          </thead>
-          <tbody>
-            {rows.map((r) => (
-              <tr key={r.slug}>
-                <Td mono>{r.slug}</Td>
-                <Td>{r.name}</Td>
-                <Td center>{r.limit}</Td>
-                <Td center><strong>{r.guests}</strong></Td>
-                <Td>{r.updated_at}</Td>
-              </tr>
-            ))}
-            {rows.length === 0 && (
-              <tr>
-                <Td colSpan={5} center>Sin datos aún</Td>
-              </tr>
-            )}
-          </tbody>
-        </table>
+        <div className="mt-4 flex gap-2">
+          <input
+            className="flex-1 rounded-lg border p-2"
+            type="password"
+            placeholder="ADMIN_TOKEN"
+            value={token}
+            onChange={(e) => setToken(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') submit();
+            }}
+          />
+          <button
+            onClick={() => submit()}
+            disabled={!token || checking}
+            className="rounded-xl border px-4 py-2 hover:shadow disabled:opacity-50"
+          >
+            {checking ? 'Verificando…' : 'Entrar'}
+          </button>
+        </div>
+
+        {error && <p className="mt-2 text-sm text-red-600">{error}</p>}
+
+        <p className="mt-4 text-xs opacity-70">
+          Consejo: puedes compartir enlaces como{' '}
+          <code>/admin?key=TU_ADMIN_TOKEN</code> para saltar este paso.
+        </p>
       </div>
     </main>
-  );
-}
-
-function Th({ children }: { children: React.ReactNode }) {
-  return <th style={{ textAlign: 'left', fontWeight: 700, borderBottom: '1px solid #ddd', padding: '10px 8px' }}>{children}</th>;
-}
-function Td({ children, center, mono, colSpan }: { children: React.ReactNode; center?: boolean; mono?: boolean; colSpan?: number }) {
-  return (
-    <td
-      colSpan={colSpan}
-      style={{
-        padding: '10px 8px',
-        borderBottom: '1px solid #eee',
-        textAlign: center ? 'center' : 'left',
-        fontFamily: mono ? 'ui-monospace, SFMono-Regular, Menlo, Consolas, monospace' : undefined,
-        whiteSpace: 'nowrap',
-      }}
-    >
-      {children}
-    </td>
   );
 }
