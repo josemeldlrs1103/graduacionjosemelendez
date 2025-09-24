@@ -93,25 +93,30 @@ export default function AdminInvitesPage() {
   }
 
   // Eliminar fila
-  async function deleteRow(slug: string) {
-    if (!token) return setError('Falta token');
-    if (!confirm(`¿Eliminar invitado con slug "${slug}"?`)) return;
-    try {
-      const res = await fetch('/api/admin/invites', {
-        method: 'DELETE',
-        headers: {
-          'Content-Type': 'application/json',
-          'x-admin-token': token,
-        },
-        body: JSON.stringify({ slug }),
-      });
-      const j = await res.json();
-      if (!res.ok) throw new Error(j?.error || 'Error al eliminar');
-      setRows((prev) => (prev || []).filter((r) => r.slug !== slug));
-    } catch (e: any) {
-      setError(e.message || 'Error al eliminar');
-    }
+ // 1) Función
+async function deleteRow(row: Row) {
+  if (!token) return setError('Falta token');
+
+  const msg = `¿Eliminar a “${row.name}” \n\nEsta acción quitará su invitación.`;
+  if (!confirm(msg)) return;
+
+  try {
+    const res = await fetch('/api/admin/invites', {
+      method: 'DELETE',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-admin-token': token,
+      },
+      body: JSON.stringify({ slug: row.slug }),
+    });
+    const j = await res.json();
+    if (!res.ok) throw new Error(j?.error || 'Error al eliminar');
+    setRows((prev) => (prev || []).filter((r) => r.slug !== row.slug));
+  } catch (e: any) {
+    setError(e.message || 'Error al eliminar');
   }
+}
+
 
   // Crear nuevo invitado
   async function addNew() {
@@ -200,6 +205,7 @@ export default function AdminInvitesPage() {
               <tr className="border-b">
                 <th className="text-left py-2">Nombre del(los) invitado(s)</th>
                 <th className="text-left py-2">Límite</th>
+
                 <th className="text-left py-2">Acciones</th>
               </tr>
             </thead>
