@@ -1,4 +1,4 @@
-// app/admin/page.tsx
+// app/admin/home/page.tsx
 'use client';
 
 import Link from 'next/link';
@@ -7,7 +7,7 @@ import { useEffect, useState } from 'react';
 export default function AdminHub() {
   const [key, setKey] = useState('');
 
-  // Toma ?key= de la URL (si viene) y lo guarda en localStorage
+  // Lee ?key= de la URL o del localStorage (no bloquea la UI si no hay token)
   useEffect(() => {
     const sp = new URLSearchParams(window.location.search);
     const fromUrl = sp.get('key') || '';
@@ -23,26 +23,25 @@ export default function AdminHub() {
     <main className="max-w-xl mx-auto p-6 space-y-4">
       <h1 className="text-2xl font-semibold">Panel de administración</h1>
 
-      {/* Campo para pegar token si no viene en la URL */}
-      {!key && (
-        <div className="flex gap-2">
-          <input
-            className="flex-1 rounded-lg border p-2"
-            type="password"
-            placeholder="ADMIN_TOKEN"
-            value={key}
-            onChange={(e) => setKey(e.target.value)}
-          />
-          <button
-            className="rounded-xl border px-4 py-2 hover:shadow"
-            onClick={() => key && localStorage.setItem('admin_token', key)}
-            title="Guardar token localmente"
-          >
-            Guardar token
-          </button>
-        </div>
-      )}
+      {/* Campo para guardar token localmente (opcional) */}
+      <div className="flex gap-2">
+        <input
+          className="flex-1 rounded-lg border p-2"
+          type="password"
+          placeholder="ADMIN_TOKEN (opcional)"
+          value={key}
+          onChange={(e) => setKey(e.target.value)}
+        />
+        <button
+          className="rounded-xl border px-4 py-2 hover:shadow"
+          onClick={() => key && localStorage.setItem('admin_token', key)}
+          title="Guardar token localmente"
+        >
+          Guardar token
+        </button>
+      </div>
 
+      {/* Botones SIEMPRE visibles */}
       <div className="grid gap-3">
         <Link
           className={btn}
@@ -70,7 +69,7 @@ export default function AdminHub() {
       </div>
 
       <p className="text-xs opacity-70">
-        Pega <code>?key=TU_ADMIN_TOKEN</code> en la URL para compartir enlaces directos a cada sección.
+        Puedes añadir <code>?key=TU_ADMIN_TOKEN</code> a la URL para que las secciones lo reciban automáticamente.
       </p>
     </main>
   );
