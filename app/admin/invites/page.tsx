@@ -7,7 +7,7 @@ type Row = {
   slug: string;
   name: string;
   limit_guests: number;
-  _dirty?: boolean; // sólo UI
+  _dirty?: boolean; // solo para UI
 };
 
 export default function AdminInvitesPage() {
@@ -34,28 +34,28 @@ export default function AdminInvitesPage() {
   }, []);
 
   async function load(tok: string) {
-  setLoading(true);
-  setError('');
-  try {
-    const res = await fetch('/api/admin/invites', {
-      headers: { 'x-admin-token': tok },
-      cache: 'no-store',
-    });
-    const j = await res.json();
-    if (!res.ok) throw new Error(j?.error || 'Error al cargar');
-    setRows(
-      (j.invites || []).map((r: Row) => ({
-        ...r,
-        _dirty: false, // limpio al venir del server
-      }))
-    );
-  } catch (e: any) {
-    setError(e.message || 'Error al cargar');
-    setRows(null);
-  } finally {
-    setLoading(false);
+    setLoading(true);
+    setError('');
+    try {
+      const res = await fetch('/api/admin/invites', {
+        headers: { 'x-admin-token': tok },
+        cache: 'no-store',
+      });
+      const j = await res.json();
+      if (!res.ok) throw new Error(j?.error || 'Error al cargar');
+      setRows(
+        (j.invites || []).map((r: Row) => ({
+          ...r,
+          _dirty: false, // limpio al venir del server
+        }))
+      );
+    } catch (e: any) {
+      setError(e.message || 'Error al cargar');
+      setRows(null);
+    } finally {
+      setLoading(false);
+    }
   }
-}
 
   // Edición en memoria
   function updateCell(slug: string, patch: Partial<Row>) {
@@ -66,75 +66,95 @@ export default function AdminInvitesPage() {
     );
   }
 
-  // Guardar fila (update)
+  // Guardar fila (update por slug) con feedback inmediato
   async function saveRow(row: Row) {
-  if (!token) return setError('Falta token');
+    // token robusto: estado o localStorage
+    const tok = token || localStorage.getItem('admin_token') || '';
+    if (!tok) return setError('Falta token');
 
-  // Normaliza datos antes de enviar
-  const name = (row.name ?? '').trim();
-  const limit =
-    typeof row.limit_guests === 'number'
-      ? row.limit_guests
-      : parseInt(String(row.limit_guests || 0), 10);
+    // Normaliza datos
+    const name = (row.name ?? '').trim();
+    const limit =
+      typeof row.limit_guests === 'number'
+        ? row.limit_guests
+        : parseInt(String(row.limit_guests || 0), 10);
 
-  if (!name) return setError('El nombre no puede estar vacío');
-  if (!Number.isFinite(limit) || limit <= 0) return setError('Límite inválido');
+    if (!name) return setError('El nombre no puede estar vacío');
+    if (!Number.isFinite(limit) || limit <= 0) return setError('Límite inválido');
 
-  try {
-    const res = await fetch('/api/admin/invites', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-admin-token': token,
-      },
-      body: JSON.stringify({
-        slug: row.slug,          // update existente
-        name,
-        limit_guests: limit,
-      }),
-    });
-    const j = await res.json();
-    if (!res.ok) throw new Error(j?.error || 'Error al guardar');
+    setError('');
 
-    // ✅ Refresca desde servidor para verificar que persistió
-    await load(token);
-  } catch (e: any) {
-    setError(e.message || 'Error al guardar');
+    try {
+      const res = await fetch('/api/admin/invites', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-admin-token': tok,
+        },
+        body: JSON.stringify({
+          slug: row.slug,          // update existente por slug
+          name,
+          limit_guests: limit,
+        }),
+      });
+
+      const j = await res.json().catch(() => ({} as any));
+      if (!res.ok) {
+        throw new Error(j?.error || `Error al guardar (HTTP ${res.status})`);
+      }
+
+      // Actualiza la fila en memoria con lo que devolvió el servidor
+      setRows((prev) =>
+        (prev || []).map((r) =>
+          r.slug === row.slug
+            ? { ...(j.invite ?? { ...row, name, limit_guests: limit }), _dirty: false }
+            : r
+        )
+      );
+
+      // Feedback sutil
+      setError('Guardado ✓');
+      setTimeout(() => setError(''), 1200);
+    } catch (e: any) {
+      setError(e.message || 'Error al guardar');
+    }
   }
-}
 
-  // Eliminar fila
- // 1) Función
-async function deleteRow(row: Row) {
-  if (!token) return setError('Falta token');
+  // Eliminar fila (pide confirmación con nombre/slug/límite)
+  async function deleteRow(row: Row) {
+    const tok = token || localStorage.getItem('admin_token') || '';
+    if (!tok) return setError('Falta token');
 
-  const msg = `¿Eliminar a “${row.name}” \n\nEsta acción quitará su invitación.`;
-  if (!confirm(msg)) return;
+    const msg = `¿Eliminar a “${row.name}” (slug: ${row.slug})?\nLímite: ${row.limit_guests}\n\nEsta acción quitará su invitación.`;
+    if (!confirm(msg)) return;
 
-  try {
-    const res = await fetch('/api/admin/invites', {
-      method: 'DELETE',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-admin-token': token,
-      },
-      body: JSON.stringify({ slug: row.slug }),
-    });
-    const j = await res.json();
-    if (!res.ok) throw new Error(j?.error || 'Error al eliminar');
-    setRows((prev) => (prev || []).filter((r) => r.slug !== row.slug));
-  } catch (e: any) {
-    setError(e.message || 'Error al eliminar');
+    try {
+      const res = await fetch('/api/admin/invites', {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-admin-token': tok,
+        },
+        body: JSON.stringify({ slug: row.slug }),
+      });
+      const j = await res.json();
+      if (!res.ok) throw new Error(j?.error || 'Error al eliminar');
+      setRows((prev) => (prev || []).filter((r) => r.slug !== row.slug));
+    } catch (e: any) {
+      setError(e.message || 'Error al eliminar');
+    }
   }
-}
-
 
   // Crear nuevo invitado
   async function addNew() {
     setError('');
-    if (!token) return setError('Falta token');
+    const tok = token || localStorage.getItem('admin_token') || '';
+    if (!tok) return setError('Falta token');
+
     const name = newName.trim();
-    const limit = typeof newLimit === 'number' ? newLimit : parseInt(String(newLimit || 0), 10);
+    const limit =
+      typeof newLimit === 'number' ? newLimit : parseInt(String(newLimit || 0), 10);
+
     if (!name) return setError('Ingresa un nombre');
     if (!Number.isFinite(limit) || limit <= 0) return setError('Límite inválido');
 
@@ -143,12 +163,13 @@ async function deleteRow(row: Row) {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'x-admin-token': token,
+          'x-admin-token': tok,
         },
         body: JSON.stringify({ name, limit_guests: limit }),
       });
       const j = await res.json();
       if (!res.ok) throw new Error(j?.error || 'Error al crear');
+
       // inserta ordenado por name
       setRows((prev) => {
         const next = [ ...(prev || []), j.invite as Row ];
@@ -157,6 +178,8 @@ async function deleteRow(row: Row) {
       });
       setNewName('');
       setNewLimit('');
+      setError('Creado ✓');
+      setTimeout(() => setError(''), 1200);
     } catch (e: any) {
       setError(e.message || 'Error al crear');
     }
@@ -167,9 +190,13 @@ async function deleteRow(row: Row) {
     () => (rows || []).filter((r) => r._dirty),
     [rows]
   );
+
   async function saveAll() {
+    const tok = token || localStorage.getItem('admin_token') || '';
+    if (!tok) return setError('Falta token');
     for (const r of dirtyRows) {
       // secuencial para simplificar feedback/errores
+      // eslint-disable-next-line no-await-in-loop
       await saveRow(r);
     }
   }
@@ -187,7 +214,7 @@ async function deleteRow(row: Row) {
     <main className="max-w-4xl mx-auto p-6 space-y-4">
       <h1 className="text-2xl font-semibold">Gestionar Invitados</h1>
 
-      {/* Token si no hay (no bloquea la UI: puedes pegarlo y recargar) */}
+      {/* Token si no hay (puedes pegarlo y cargar) */}
       {!token && (
         <div className="flex gap-2">
           <input
@@ -206,7 +233,7 @@ async function deleteRow(row: Row) {
         </div>
       )}
 
-      {error && <p className="text-sm text-red-600">{error}</p>}
+      {error && <p className="text-sm">{error}</p>}
 
       {/* Tabla editable */}
       {rows && (
@@ -216,7 +243,7 @@ async function deleteRow(row: Row) {
               <tr className="border-b">
                 <th className="text-left py-2">Nombre del(los) invitado(s)</th>
                 <th className="text-left py-2">Límite</th>
-
+                <th className="text-left py-2">Slug</th>
                 <th className="text-left py-2">Acciones</th>
               </tr>
             </thead>
@@ -236,10 +263,16 @@ async function deleteRow(row: Row) {
                       type="number"
                       min={1}
                       value={r.limit_guests}
-                      onChange={(e) =>
-                        updateCell(r.slug, { limit_guests: parseInt(e.target.value || '1', 10) })
-                      }
+                      onChange={(e) => {
+                        const raw = e.target.value;
+                        updateCell(r.slug, {
+                          limit_guests: raw === '' ? 1 : parseInt(raw, 10) || 1, // ← nunca NaN
+                        });
+                      }}
                     />
+                  </td>
+                  <td className="py-2 pr-2 whitespace-nowrap">
+                    <code>{r.slug}</code>
                   </td>
                   <td className="py-2">
                     <div className="flex gap-2">
@@ -280,7 +313,7 @@ async function deleteRow(row: Row) {
                     placeholder="Límite"
                     value={newLimit}
                     onChange={(e) =>
-                      setNewLimit(e.target.value === '' ? '' : parseInt(e.target.value, 10))
+                      setNewLimit(e.target.value === '' ? '' : parseInt(e.target.value, 10) || 1)
                     }
                   />
                 </td>
