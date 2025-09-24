@@ -68,57 +68,65 @@ export default function AdminInvitesPage() {
 
   // Guardar fila (update por slug) con feedback inmediato
   async function saveRow(row: Row) {
-    // token robusto: estado o localStorage
-    const tok = token || localStorage.getItem('admin_token') || '';
-    if (!tok) return setError('Falta token');
+  // token robusto: estado o localStorage
+  const tok = token || localStorage.getItem('admin_token') || '';
+  if (!tok) return setError('Falta token');
 
-    // Normaliza datos
-    const name = (row.name ?? '').trim();
-    const limit =
-      typeof row.limit_guests === 'number'
-        ? row.limit_guests
-        : parseInt(String(row.limit_guests || 0), 10);
+  // Normaliza datos
+  const name = (row.name ?? '').trim();
+  const limit =
+    typeof row.limit_guests === 'number'
+      ? row.limit_guests
+      : parseInt(String(row.limit_guests || 0), 10);
 
-    if (!name) return setError('El nombre no puede estar vacío');
-    if (!Number.isFinite(limit) || limit <= 0) return setError('Límite inválido');
+  if (!name) return setError('El nombre no puede estar vacío');
+  if (!Number.isFinite(limit) || limit <= 0) return setError('Límite inválido');
 
-    setError('');
+  // ⚠️ Confirmación previa al guardado
+  const msg = `¿Guardar cambios para “${name}” (slug: ${row.slug})?
+Límite: ${limit}
 
-    try {
-      const res = await fetch('/api/admin/invites', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'x-admin-token': tok,
-        },
-        body: JSON.stringify({
-          slug: row.slug,          // update existente por slug
-          name,
-          limit_guests: limit,
-        }),
-      });
+Se actualizará este registro en la base de datos.`;
+  if (!confirm(msg)) return;
 
-      const j = await res.json().catch(() => ({} as any));
-      if (!res.ok) {
-        throw new Error(j?.error || `Error al guardar (HTTP ${res.status})`);
-      }
+  setError('');
 
-      // Actualiza la fila en memoria con lo que devolvió el servidor
-      setRows((prev) =>
-        (prev || []).map((r) =>
-          r.slug === row.slug
-            ? { ...(j.invite ?? { ...row, name, limit_guests: limit }), _dirty: false }
-            : r
-        )
-      );
+  try {
+    const res = await fetch('/api/admin/invites', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-admin-token': tok,
+      },
+      body: JSON.stringify({
+        slug: row.slug,          // update existente por slug
+        name,
+        limit_guests: limit,
+      }),
+    });
 
-      // Feedback sutil
-      setError('Guardado ✓');
-      setTimeout(() => setError(''), 1200);
-    } catch (e: any) {
-      setError(e.message || 'Error al guardar');
+    const j = await res.json().catch(() => ({} as any));
+    if (!res.ok) {
+      throw new Error(j?.error || `Error al guardar (HTTP ${res.status})`);
     }
+
+    // Actualiza la fila en memoria con lo que devolvió el servidor
+    setRows((prev) =>
+      (prev || []).map((r) =>
+        r.slug === row.slug
+          ? { ...(j.invite ?? { ...row, name, limit_guests: limit }), _dirty: false }
+          : r
+      )
+    );
+
+    // Feedback sutil (puedes cambiar por alert('Guardado ✓') si prefieres popup)
+    setError('Guardado ✓');
+    setTimeout(() => setError(''), 1200);
+  } catch (e: any) {
+    setError(e.message || 'Error al guardar');
   }
+}
+
 
   // Eliminar fila (pide confirmación con nombre/slug/límite)
   async function deleteRow(row: Row) {
