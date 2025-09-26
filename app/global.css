@@ -1,0 +1,81 @@
+/* app/globals.css */
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Tipografía por defecto */
+@layer base {
+  :root {
+    --rounded: 0.9rem;
+  }
+  html, body {
+    @apply bg-slate-50 text-slate-800;
+    font-family: var(--font-inter), ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial, "Apple Color Emoji","Segoe UI Emoji";
+  }
+
+  h1 { @apply text-2xl font-semibold text-slate-900; }
+  h2 { @apply text-xl font-semibold text-slate-900; }
+  h3 { @apply text-lg font-semibold text-slate-900; }
+  p  { @apply leading-relaxed; }
+
+  a { @apply underline underline-offset-2 decoration-slate-300 hover:decoration-slate-500; }
+}
+
+/* Controles y elementos comunes (aplican a todo el sitio sin cambiar JSX) */
+@layer components {
+  /* Botones nativos */
+  button {
+    @apply rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm shadow-sm hover:shadow transition disabled:opacity-50 disabled:cursor-not-allowed;
+  }
+
+  /* Inputs / Selects / Textareas nativos */
+  input[type="text"],
+  input[type="number"],
+  input[type="password"],
+  input[type="email"],
+  textarea,
+  select {
+    @apply w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm shadow-sm outline-none focus:ring-2 focus:ring-indigo-200 focus:border-indigo-300 transition;
+  }
+
+  /* Radios y checkboxes: mejor alineación */
+  input[type="radio"],
+  input[type="checkbox"] {
+    @apply align-middle accent-indigo-600;
+  }
+
+  /* Tarjetas simples (útil donde ya envuelves contenido en <div className="rounded-xl border p-...">) */
+  .card {
+    @apply rounded-2xl border border-slate-200 bg-white/90 backdrop-blur p-4 shadow-sm;
+  }
+
+  /* Tablas */
+  table {
+    @apply w-full border-collapse rounded-2xl overflow-hidden;
+  }
+  thead tr {
+    @apply bg-slate-100/80;
+  }
+  th, td {
+    @apply text-left p-3 align-top border-b border-slate-100;
+  }
+  tbody tr:hover {
+    @apply bg-slate-50;
+  }
+
+  /* Etiquetas/ayudas */
+  .muted { @apply text-slate-500; }
+}
+
+/* Pequeños utilitarios visuales */
+@layer utilities {
+  .section {
+    @apply card p-6;
+  }
+  .grid-2 {
+    @apply grid grid-cols-1 md:grid-cols-2 gap-4;
+  }
+  .grid-4 {
+    @apply grid grid-cols-2 md:grid-cols-4 gap-3;
+  }
+}
